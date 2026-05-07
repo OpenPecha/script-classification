@@ -297,12 +297,6 @@ export function BatchTaskView() {
       
       if (state === 'all') return stats.total_tasks
       
-      // If the backend treats 'accepted' and 'verified' as separate buckets in the report
-      // (which is common for sum-to-total reports), we should sum them for the 'Accepted' tab.
-      if (state === 'accepted') {
-        return (stats.accepted || 0) + (stats.verified || 0)
-      }
-      
       return stats[state]
     },
     [report, filterStats, userIdFilter, roleFilter]
@@ -314,12 +308,12 @@ export function BatchTaskView() {
       const stats = (userIdFilter || roleFilter) ? (filterStats || report) : (report || filterStats)
       if (!stats) return null
       
-      const unverified = stats.accepted || 0
+      const accepted = stats.accepted || 0
       const verified = stats.verified || 0
 
-      if (val === 'all') return unverified + verified
+      if (val === 'all') return accepted
       if (val === 'verified') return verified
-      return unverified
+      return Math.max(0, accepted - verified)
     },
     [report, filterStats, userIdFilter, roleFilter]
   )
