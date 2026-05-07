@@ -128,6 +128,13 @@
     "filterByState": "གནས་སྟངས་ཀྱིས་ཚགས།",
     "downloadCsv": "CSV ཕབ་ལེན།",
     "downloadFailed": "ཕབ་ལེན་མ་ཐུབ།",
+    "filterByUser": "སྤྱོད་མཁན་གྱིས་ཚགས་མ།",
+    "allUsers": "སྤྱོད་མཁན་ཚང་མ།",
+    "rejections": "དགག་གྲངས།",
+    "roles": {
+      "annotator": "མཆན་བཀོད་པ།",
+      "reviewer": "བསྐྱར་ཞིབ་པ།"
+    },
     "states": {
       "all": "ཚང་མ།",
       "pending": "སྒུག་བཞིན།",

@@ -128,6 +128,13 @@
     "filterByState": "Filter by state",
     "downloadCsv": "Download CSV",
     "downloadFailed": "Download failed",
+    "filterByUser": "Filter by User",
+    "allUsers": "All Users",
+    "rejections": "Rejections",
+    "roles": {
+      "annotator": "Annotator",
+      "reviewer": "Reviewer"
+    },
     "states": {
       "all": "All",
       "pending": "Pending",

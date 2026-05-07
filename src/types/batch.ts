@@ -7,6 +7,15 @@ export interface Batch {
   group_name: string
 }
 
+export interface BatchUser {
+  id: string
+  username: string
+  email: string
+  role: 'annotator' | 'reviewer'
+  group_id: string | null
+  group_name: string | null
+}
+
 // Script type count in accepted tasks
 export interface AcceptedScriptTypeCount {
   script_type: string
@@ -62,8 +71,15 @@ export interface BatchReport extends Batch {
   half_annotated: number
   annotated: number
   accepted: number
+  verified: number
   trashed: number
+  total_rejection_count: number
   script_types?: Record<string, number>
+}
+
+export interface BatchOverviewResponse {
+  tasks: BatchTask[]
+  filter_stats: BatchReport
 }
 
 export interface ApplicationBatchReport {

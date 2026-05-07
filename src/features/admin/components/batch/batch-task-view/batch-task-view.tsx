@@ -13,12 +13,24 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUIStore } from '@/store/use-ui-store'
 import { useAuth } from '@/features/auth'
-import { useGetBatchTasks, useRestoreTask, useRejectTask, useVerifyTask, useUnverifyTask, useGetBatchReport } from '../../../api/batch'
+import { useGetBatchTasks, useRestoreTask, useRejectTask, useVerifyTask, useUnverifyTask, useGetBatchReport, useGetBatchUsers } from '../../../api/batch'
 import { useBatchCsvDownload } from '../../../hooks/use-batch-csv-download'
 import { TaskListSidebar } from './task-list-sidebar'
 import { TaskPreview } from './task-preview'
 import { BATCH_STATS_CONFIG, type BatchTask, type BatchTaskState } from '@/types'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Filter, User } from 'lucide-react'
 
 const STATE_OPTION_KEYS: Array<{ value: BatchTaskState | 'all'; key: string }> = [
   { value: 'all', key: 'batches.states.all' },
@@ -27,6 +39,12 @@ const STATE_OPTION_KEYS: Array<{ value: BatchTaskState | 'all'; key: string }> =
   { value: 'annotated', key: 'batches.states.annotated' },
   { value: 'accepted', key: 'batches.states.accepted' },
   { value: 'trashed', key: 'batches.states.trashed' },
+]
+
+const VERIFICATION_OPTION_KEYS: Array<{ value: 'all' | 'verified' | 'unverified'; key: string }> = [
+  { value: 'all', key: 'batches.verificationStates.all' },
+  { value: 'verified', key: 'batches.verificationStates.verified' },
+  { value: 'unverified', key: 'batches.verificationStates.unverified' },
 ]
 
 export function BatchTaskView() {
@@ -40,26 +58,46 @@ export function BatchTaskView() {
   // Get state filter from URL, default to 'all'
   const stateFilter = (searchParams.get('state') as BatchTaskState | 'all') || 'all'
   const verificationFilter = (searchParams.get('verification') as 'all' | 'verified' | 'unverified') || 'all'
+  const userIdFilter = searchParams.get('user_id') || undefined
+  const roleFilter = (searchParams.get('role') as 'annotator' | 'reviewer') || undefined
   const taskIdFromUrl = searchParams.get('task_id')
 
 
   // API hooks
   const { data: report, isLoading: isLoadingReport } = useGetBatchReport(batchId!, true)
-  const { data: rawTasks = [], isLoading: isLoadingTasks } = useGetBatchTasks(batchId!, stateFilter)
+  const { data: overview, isLoading: isLoadingTasks } = useGetBatchTasks(
+    batchId!, 
+    stateFilter,
+    userIdFilter,
+    roleFilter,
+    verificationFilter === 'all' ? undefined : (verificationFilter === 'verified')
+  )
+  const { data: rawBatchUsers = [] } = useGetBatchUsers(batchId!)
+  
+  const tasks = useMemo(() => {
+    const rawTasks = overview?.tasks || []
+    const seen = new Set()
+    return rawTasks.filter(task => {
+      if (seen.has(task.task_id)) return false
+      seen.add(task.task_id)
+      return true
+    })
+  }, [overview?.tasks])
+
+  const batchUsers = useMemo(() => {
+    const seen = new Set()
+    return rawBatchUsers.filter(user => {
+      if (seen.has(user.id)) return false
+      seen.add(user.id)
+      return true
+    })
+  }, [rawBatchUsers])
+  const filterStats = overview?.filter_stats
+
   const restoreTask = useRestoreTask()
   const rejectTask = useRejectTask()
   const verifyTask = useVerifyTask()
   const unverifyTask = useUnverifyTask()
-
-  // Client-side filtering for verification
-  const tasks = useMemo(() => {
-    if (stateFilter === 'accepted' && verificationFilter !== 'all') {
-      return rawTasks.filter(task =>
-        verificationFilter === 'verified' ? task.is_verified : !task.is_verified
-      )
-    }
-    return rawTasks
-  }, [rawTasks, stateFilter, verificationFilter])
 
   // CSV download hook
   const { download: downloadCsv, isDownloading } = useBatchCsvDownload({
@@ -114,6 +152,26 @@ export function BatchTaskView() {
     (value: string) => {
       setSearchParams((prev) => {
         prev.set('verification', value)
+        prev.delete('task_id')
+        return prev
+      })
+    },
+    [setSearchParams]
+  )
+
+  const handleUserFilterChange = useCallback(
+    (userId: string | null, role?: 'annotator' | 'reviewer') => {
+      setSearchParams((prev) => {
+        if (userId) {
+          prev.set('user_id', userId)
+          if (role) prev.set('role', role)
+          // Reset other filters when switching users to show their full overview
+          prev.set('state', 'all')
+          prev.delete('verification')
+        } else {
+          prev.delete('user_id')
+          prev.delete('role')
+        }
         prev.delete('task_id')
         return prev
       })
@@ -232,12 +290,54 @@ export function BatchTaskView() {
   // Get task count for current filter
   const getTaskCount = useCallback(
     (state: BatchTaskState | 'all') => {
-      if (!report) return null
-      if (state === 'all') return report.total_tasks
-      return report[state]
+      // Use the live filter stats from the overview if available, but only if we have a user/role filter
+      // Otherwise use the global report which is more stable (doesn't change when state filter changes)
+      const stats = (userIdFilter || roleFilter) ? (filterStats || report) : (report || filterStats)
+      if (!stats) return null
+      
+      if (state === 'all') return stats.total_tasks
+      
+      return stats[state]
     },
-    [report]
+    [report, filterStats, userIdFilter, roleFilter]
   )
+
+  const getVerificationCount = useCallback(
+    (val: 'all' | 'verified' | 'unverified') => {
+      // Prioritize the overview filter stats as it contains the verified count
+      const stats = (userIdFilter || roleFilter) ? (filterStats || report) : (report || filterStats)
+      if (!stats) return null
+      
+      const accepted = stats.accepted || 0
+      const verified = stats.verified || 0
+
+      if (val === 'all') return accepted
+      if (val === 'verified') return verified
+      return Math.max(0, accepted - verified)
+    },
+    [report, filterStats, userIdFilter, roleFilter]
+  )
+
+  const annotators = useMemo(() => batchUsers.filter(u => u.role === 'annotator'), [batchUsers])
+  const reviewers = useMemo(() => batchUsers.filter(u => u.role === 'reviewer'), [batchUsers])
+
+  const activeUser = useMemo(() => {
+    if (!userIdFilter) return null
+    return batchUsers.find(u => u.id === userIdFilter)
+  }, [batchUsers, userIdFilter])
+
+  // Filter state options based on role
+  const filteredStateOptions = useMemo(() => {
+    if (roleFilter === 'reviewer') {
+      return STATE_OPTION_KEYS.filter(opt => opt.value === 'accepted' || opt.value === 'all')
+    }
+    if (roleFilter === 'annotator') {
+      return STATE_OPTION_KEYS.filter(opt => 
+        opt.value === 'half_annotated' || opt.value === 'annotated' || opt.value === 'all'
+      )
+    }
+    return STATE_OPTION_KEYS
+  }, [roleFilter])
 
   return (
     <div className="flex flex-col h-[calc(100vh-3rem)] animate-fade-in">
@@ -258,7 +358,12 @@ export function BatchTaskView() {
             {isLoadingReport ? (
               <Skeleton className="h-7 w-48" />
             ) : (
-              <h1 className="text-xl font-semibold">{report?.name || t('batches.batchTasks')}</h1>
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-xl font-semibold">{report?.name || t('batches.batchTasks')}</h1>
+                <span className="text-sm font-medium text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                  {t('batches.rejections')}: {(userIdFilter || roleFilter ? (filterStats || report) : (report || filterStats))?.total_rejection_count ?? 0}
+                </span>
+              </div>
             )}
           </div>
         </div>
@@ -279,7 +384,7 @@ export function BatchTaskView() {
               <SelectValue placeholder={t('batches.filterByState')} />
             </SelectTrigger>
             <SelectContent>
-              {STATE_OPTION_KEYS.map((option) => {
+              {filteredStateOptions.map((option) => {
                 const count = getTaskCount(option.value)
                 const config = option.value !== 'all'
                   ? BATCH_STATS_CONFIG[option.value]
@@ -312,14 +417,103 @@ export function BatchTaskView() {
                 <SelectValue placeholder={t('batches.filterByVerification')} />
               </SelectTrigger>
               <SelectContent>
-                {['all', 'verified', 'unverified'].map((val) => (
-                  <SelectItem key={val} value={val}>
-                    {t(`batches.verificationStates.${val}`)}
-                  </SelectItem>
-                ))}
+                {VERIFICATION_OPTION_KEYS.map((opt) => {
+                  const count = getVerificationCount(opt.value)
+                  return (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex items-center justify-between gap-3 w-full">
+                        <span>{t(opt.key)}</span>
+                        {count !== null && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                            {count}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           )}
+
+          {/* User Filter Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className={cn(
+                  "gap-2 h-9 min-w-[140px] justify-start px-3",
+                  userIdFilter && "border-primary/50 bg-primary/5"
+                )}
+              >
+                <Filter className={cn("h-4 w-4", userIdFilter ? "text-primary" : "text-muted-foreground")} />
+                <span className="truncate max-w-[100px]">
+                  {activeUser?.username || t('batches.filterByUser')}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => handleUserFilterChange(null)}>
+                <Filter className="h-4 w-4 mr-2 opacity-50" />
+                {t('batches.allUsers')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              
+              {/* Annotators Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <User className="h-4 w-4 mr-2 opacity-50" />
+                  <span>{t('batches.roles.annotator')}</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="max-h-[300px] overflow-y-auto">
+                    {annotators.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground italic">
+                        No annotators
+                      </div>
+                    ) : (
+                      annotators.map((user) => (
+                        <DropdownMenuItem 
+                          key={user.id}
+                          onClick={() => handleUserFilterChange(user.id, 'annotator')}
+                          className={cn(userIdFilter === user.id && "bg-accent")}
+                        >
+                          {user.username}
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+
+              {/* Reviewers Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <User className="h-4 w-4 mr-2 opacity-50" />
+                  <span>{t('batches.roles.reviewer')}</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="max-h-[300px] overflow-y-auto">
+                    {reviewers.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground italic">
+                        No reviewers
+                      </div>
+                    ) : (
+                      reviewers.map((user) => (
+                        <DropdownMenuItem 
+                          key={user.id}
+                          onClick={() => handleUserFilterChange(user.id, 'reviewer')}
+                          className={cn(userIdFilter === user.id && "bg-accent")}
+                        >
+                          {user.username}
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Download CSV */}
           <Button
@@ -344,7 +538,7 @@ export function BatchTaskView() {
         {/* Task List Sidebar */}
         <div className="w-64 shrink-0">
           <TaskListSidebar
-            key={`${stateFilter}-${verificationFilter}-${batchId}`}
+            key={`${stateFilter}-${verificationFilter}-${userIdFilter}-${roleFilter}-${batchId}`}
             tasks={tasks}
             selectedTaskId={selectedTask?.task_id || null}
             onSelectTask={handleSelectTask}

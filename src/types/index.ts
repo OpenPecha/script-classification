@@ -44,7 +44,9 @@ export type { Group, GroupWithUsers, GroupRequest, GroupUpdateRequest } from './
 export { BATCH_STATS_CONFIG, WORKFLOW_STATS } from './batch'
 export type {
   Batch,
+  BatchUser,
   BatchReport,
+  BatchOverviewResponse,
   ApplicationBatchReport,
   AcceptedScriptTypeCount,
   BatchUploadTask,
