@@ -72,9 +72,26 @@ export function BatchTaskView() {
     roleFilter,
     verificationFilter === 'all' ? undefined : (verificationFilter === 'verified')
   )
-  const { data: batchUsers = [] } = useGetBatchUsers(batchId!)
+  const { data: rawBatchUsers = [] } = useGetBatchUsers(batchId!)
   
-  const tasks = overview?.tasks || []
+  const tasks = useMemo(() => {
+    const rawTasks = overview?.tasks || []
+    const seen = new Set()
+    return rawTasks.filter(task => {
+      if (seen.has(task.task_id)) return false
+      seen.add(task.task_id)
+      return true
+    })
+  }, [overview?.tasks])
+
+  const batchUsers = useMemo(() => {
+    const seen = new Set()
+    return rawBatchUsers.filter(user => {
+      if (seen.has(user.id)) return false
+      seen.add(user.id)
+      return true
+    })
+  }, [rawBatchUsers])
   const filterStats = overview?.filter_stats
 
   const restoreTask = useRestoreTask()
@@ -148,6 +165,9 @@ export function BatchTaskView() {
         if (userId) {
           prev.set('user_id', userId)
           if (role) prev.set('role', role)
+          // Reset other filters when switching users to show their full overview
+          prev.set('state', 'all')
+          prev.delete('verification')
         } else {
           prev.delete('user_id')
           prev.delete('role')
@@ -346,11 +366,9 @@ export function BatchTaskView() {
             ) : (
               <div className="flex items-baseline gap-2">
                 <h1 className="text-xl font-semibold">{report?.name || t('batches.batchTasks')}</h1>
-                {((userIdFilter || roleFilter ? (filterStats || report) : (report || filterStats))?.total_rejection_count ?? 0) > 0 && (
-                  <span className="text-sm font-medium text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
-                    {t('batches.rejections')}: {(userIdFilter || roleFilter ? (filterStats || report) : (report || filterStats))?.total_rejection_count}
-                  </span>
-                )}
+                <span className="text-sm font-medium text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                  {t('batches.rejections')}: {(userIdFilter || roleFilter ? (filterStats || report) : (report || filterStats))?.total_rejection_count ?? 0}
+                </span>
               </div>
             )}
           </div>
