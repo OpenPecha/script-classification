@@ -36,33 +36,29 @@ export function buildAllSegments(report: BatchReport): ProgressSegmentData[] {
     const count = report[status]
     const percentage = calculatePercentage(count, total)
 
-    if (percentage > 0) {
-      segments.push({
-        status,
-        count,
-        percentage,
-        barColor: config.barColor,
-        textColor: config.textColor,
-        label: config.label,
-      })
-    }
-  }
-
-  // Add trashed segment if present
-  if (report.trashed > 0) {
-    const config = BATCH_STATS_CONFIG.trashed
-    const percentage = calculatePercentage(report.trashed, total)
-
     segments.push({
-      status: 'trashed',
-      count: report.trashed,
+      status,
+      count,
       percentage,
       barColor: config.barColor,
       textColor: config.textColor,
       label: config.label,
-      isHatched: true,
     })
   }
+
+  // Add trashed segment
+  const config = BATCH_STATS_CONFIG.trashed
+  const percentage = calculatePercentage(report.trashed, total)
+
+  segments.push({
+    status: 'trashed',
+    count: report.trashed,
+    percentage,
+    barColor: config.barColor,
+    textColor: config.textColor,
+    label: config.label,
+    isHatched: true,
+  })
 
   return segments
 }

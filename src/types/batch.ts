@@ -26,7 +26,6 @@ export interface AcceptedScriptTypeCount {
 export type BatchExportTask = {
   file_number: string
   image_url: string
-  orientation: 'landscape' | 'portrait' | null
   status: BatchTaskState
   annotator_a_username: string | null
   classification_a: string | null
@@ -34,6 +33,8 @@ export type BatchExportTask = {
   classification_b: string | null
   reviewer_username: string | null
   final_script: string | null
+  is_verified: boolean
+  rejection_count: number
   trashed_by: string | null
 }
 

@@ -46,7 +46,9 @@ export function StackedProgressBar({ report, className }: StackedProgressBarProp
                 segment.isHatched && 'progress-segment-hatched'
               )}
             />
-            <span>{segment.label}</span>
+            <span>
+              {segment.label} ({segment.count})
+            </span>
           </div>
         ))}
       </div>
@@ -58,17 +60,19 @@ export function StackedProgressBar({ report, className }: StackedProgressBarProp
         role="group"
         aria-label="Batch progress"
       >
-        {segments.map((segment) => (
-          <ProgressSegment
-            key={segment.status}
-            segment={segment}
-            showLabel={shouldShowLabel(
-              segment.percentage,
-              DEFAULT_PROGRESS_BAR_CONFIG.labelThreshold
-            )}
-            isAnimated={isAnimated}
-          />
-        ))}
+        {segments
+          .filter((s) => s.percentage > 0)
+          .map((segment) => (
+            <ProgressSegment
+              key={segment.status}
+              segment={segment}
+              showLabel={shouldShowLabel(
+                segment.percentage,
+                DEFAULT_PROGRESS_BAR_CONFIG.labelThreshold
+              )}
+              isAnimated={isAnimated}
+            />
+          ))}
       </div>
     </div>
   )

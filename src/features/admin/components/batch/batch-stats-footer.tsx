@@ -1,17 +1,21 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ArrowRight, Eye } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Eye, CheckCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BatchStatsFooterProps {
   batchId: string
   trashedCount: number
+  rejectedCount: number
+  verifiedCount: number
   acceptedPercentage: number
 }
 
 export function BatchStatsFooter({
   batchId,
   trashedCount,
+  rejectedCount,
+  verifiedCount,
   acceptedPercentage,
 }: BatchStatsFooterProps) {
   const { t } = useTranslation('admin')
@@ -34,6 +38,18 @@ export function BatchStatsFooter({
           >
             {t('batches.accepted', { percentage: acceptedPercentage })}
           </span>
+        </div>
+
+        {/* Verified count */}
+        <div className="flex items-center gap-1.5 text-emerald-600">
+          <CheckCircle className="h-3.5 w-3.5" />
+          <span className="font-medium">{t('batches.isVerified', { count: verifiedCount })}</span>
+        </div>
+
+        {/* Rejected count */}
+        <div className="flex items-center gap-1.5 text-orange-600">
+          <XCircle className="h-3.5 w-3.5" />
+          <span className="font-medium">{t('batches.rejected', { count: rejectedCount })}</span>
         </div>
       </div>
 

@@ -54,6 +54,8 @@ export function BatchStats({ batchId, report, isLoading }: BatchStatsProps) {
       <BatchStatsFooter
         batchId={batchId}
         trashedCount={report.trashed}
+        rejectedCount={report.total_rejection_count}
+        verifiedCount={report.verified}
         acceptedPercentage={acceptedPercentage}
       />
     </div>
