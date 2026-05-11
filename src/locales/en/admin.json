@@ -88,6 +88,8 @@
     "noTasksInBatch": "No tasks in this batch",
     "status": "Status",
     "accepted": "{{percentage}}% Accepted",
+    "rejected": "{{count}} Rejected",
+    "isVerified": "{{count}} Verified",
     "trashed": "{{count}} Trashed",
     "scriptTypeBreakdown": "Accepted Script Types ({{count}})",
     "showAllScriptTypes": "Show all {{count}} types",

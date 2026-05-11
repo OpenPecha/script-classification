@@ -8,17 +8,18 @@ import { getDisplayName } from '@/types'
  * Order determines column order in exported CSV
  */
 const CSV_COLUMNS = [
-  { key: 'file_number', header: 'File Number' },
-  { key: 'image_url', header: 'Image URL' },
-  { key: 'orientation', header: 'Orientation' },
-  { key: 'status', header: 'Status' },
-  { key: 'annotator_a_username', header: 'Annotator A' },
-  { key: 'classification_a', header: 'Classification A' },
-  { key: 'annotator_b_username', header: 'Annotator B' },
-  { key: 'classification_b', header: 'Classification B' },
-  { key: 'reviewer_username', header: 'Reviewer' },
-  { key: 'final_script', header: 'Final Script' },
-  { key: 'trashed_by', header: 'Trashed By' },
+  { key: 'file_number', header: 'file_number' },
+  { key: 'image_url', header: 'image_url' },
+  { key: 'status', header: 'status' },
+  { key: 'annotator_a_username', header: 'annotator_a_username' },
+  { key: 'classification_a', header: 'classification_a' },
+  { key: 'annotator_b_username', header: 'annotator_b_username' },
+  { key: 'classification_b', header: 'classification_b' },
+  { key: 'reviewer_username', header: 'reviewer_username' },
+  { key: 'final_script', header: 'final_script' },
+  { key: 'is_verified', header: 'is_verified' },
+  { key: 'rejection_count', header: 'rejection_count' },
+  { key: 'trashed_by', header: 'trashed_by' },
 ] as const satisfies ReadonlyArray<{ key: keyof BatchExportTask; header: string }>
 
 const CLASSIFICATION_FIELDS = new Set<string>(['classification_a', 'classification_b', 'final_script'])
@@ -30,8 +31,8 @@ const CLASSIFICATION_FIELDS = new Set<string>(['classification_a', 'classificati
 function transformTaskToCsvRow(
   task: BatchExportTask,
   styles: ScriptStyle[],
-): Record<string, string | number> {
-  const row: Record<string, string | number> = {}
+): Record<string, string | number | boolean> {
+  const row: Record<string, string | number | boolean> = {}
 
   for (const { key, header } of CSV_COLUMNS) {
     const value = task[key]
