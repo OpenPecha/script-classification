@@ -173,6 +173,47 @@
       "failedDescription": "Failed to upload batch. Please try again."
     }
   },
+  "userContributions": {
+    "title": "User Contributions",
+    "description": "View annotator and reviewer contribution totals for your group.",
+    "noGroupYet": "You don't belong to any group yet.",
+    "refresh": "Refresh",
+    "profileLoadError": "Could not load your profile. Please try again.",
+    "summaryLoadError": "Could not load contribution summary. Please try again.",
+    "groupsLoadError": "Could not load groups. Please try again.",
+    "noGroups": "No groups are available.",
+    "groupNotFound": "This group was not found.",
+    "failedToLoadGroup": "Could not load contribution data for this group.",
+    "featureNotImplementedForGroup": "This feature is not implemented for your group yet.",
+    "invalidDateRange": "Invalid dates. Use YYYY-MM-DD. Start must be on or before end (both days inclusive).",
+    "dateFilterTitleGroup": "Date range for this group (filtered totals)",
+    "startDateInclusive": "Start date (inclusive)",
+    "endDateInclusive": "End date (inclusive)",
+    "apply": "Apply",
+    "clear": "Clear",
+    "validationDatesRequired": "Enter both start and end dates.",
+    "validationStartBeforeEnd": "Start date must be on or before end date (both inclusive).",
+    "adminExpandHint": "Expand a group to set its date range and view contribution totals. Each group uses its own filter.",
+    "nonAdminFilteredHint": "(Numbers in parentheses are totals for the last {{count}} days.)",
+    "annotatorsSection": "Annotators",
+    "reviewersSection": "Reviewers",
+    "noAnnotators": "No annotator data for this period.",
+    "noReviewers": "No reviewer data for this period.",
+    "tables": {
+      "annotator": {
+        "username": "Username",
+        "totalAnnotated": "Total annotated",
+        "reviewedCount": "Reviewed count",
+        "approvedCount": "Approved count"
+      },
+      "reviewer": {
+        "username": "Username",
+        "totalReviewed": "Total reviewed",
+        "verifiedCount": "Verified count",
+        "totalRejection": "Total rejection"
+      }
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",

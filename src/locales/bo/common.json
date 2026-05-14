@@ -3,7 +3,8 @@
     "dashboard": "མདུན་ངོས།",
     "users": "སྤྱོད་མཁན།",
     "groups": "སྡེ་ཚན།",
-    "batches": "ཚོ་སྒྲིག"
+    "batches": "ཚོ་སྒྲིག",
+    "userContributions": "སྤྱོད་མཁན་བྱས་རྗེས།"
   },
   "actions": {
     "save": "ཉར་བ།",
