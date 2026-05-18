@@ -6,7 +6,7 @@ import type {
 } from '@/types'
 import { contributionKeys } from './contribution-keys'
 
-const CONTRIBUTIONS_STALE_MS = 20 * 60 * 1000
+const CONTRIBUTIONS_CACHE_MS = 30 * 60 * 1000
 
 export async function getGroupContributionSummary(
   groupId: string,
@@ -23,12 +23,23 @@ export async function getGroupContributionSummary(
   )
 }
 
-export interface GroupContributionSummaryPair {
-  overall: GroupContributionSummaryResponse
-  filtered: GroupContributionSummaryResponse
+export function useGroupContributionSummaryOverall(options: {
+  groupId: string | undefined
+  enabled: boolean
+}) {
+  const { groupId, enabled } = options
+
+  return useQuery({
+    queryKey: contributionKeys.summaryOverall(groupId ?? 'none'),
+    queryFn: () => getGroupContributionSummary(groupId as string),
+    enabled: Boolean(groupId) && enabled,
+    staleTime: CONTRIBUTIONS_CACHE_MS,
+    gcTime: CONTRIBUTIONS_CACHE_MS,
+    retry: 1,
+  })
 }
 
-export function useGroupContributionSummaryPair(options: {
+export function useGroupContributionSummaryFiltered(options: {
   groupId: string | undefined
   period: { start: string; end: string }
   enabled: boolean
@@ -36,25 +47,19 @@ export function useGroupContributionSummaryPair(options: {
   const { groupId, period, enabled } = options
 
   return useQuery({
-    queryKey: contributionKeys.summaryPair(
+    queryKey: contributionKeys.summaryFiltered(
       groupId ?? 'none',
       period.start,
       period.end
     ),
-    queryFn: async (): Promise<GroupContributionSummaryPair> => {
-      const id = groupId as string
-      const range: ContributionSummaryQueryParams = {
+    queryFn: () =>
+      getGroupContributionSummary(groupId as string, {
         start_date: period.start,
         end_date: period.end,
-      }
-      const [overall, filtered] = await Promise.all([
-        getGroupContributionSummary(id),
-        getGroupContributionSummary(id, range),
-      ])
-      return { overall, filtered }
-    },
+      }),
     enabled: Boolean(groupId) && enabled,
-    staleTime: CONTRIBUTIONS_STALE_MS,
+    staleTime: CONTRIBUTIONS_CACHE_MS,
+    gcTime: CONTRIBUTIONS_CACHE_MS,
     retry: 1,
   })
 }

@@ -23,13 +23,103 @@ function SummaryCard({ label, value, percentage }: SummaryCardProps) {
 
 function SummaryCardsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
-      {[...Array(6)].map((_, index) => (
-        <Card key={index} className="rounded-lg border px-4 py-3">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="mt-2 h-7 w-24" />
-        </Card>
-      ))}
+    <div className="space-y-3 pb-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        {[...Array(6)].map((_, index) => (
+          <Card key={index} className="rounded-lg border px-4 py-3">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="mt-2 h-7 w-24" />
+          </Card>
+        ))}
+      </div>
+      <Skeleton className="h-48 w-full rounded-lg" />
+    </div>
+  )
+}
+
+const SCRIPT_GROUPS: Record<string, string[]> = {
+  Uchen: ['uchen', 'uchen_sugthung', 'uchen_sugdring', 'uchen_sugring'],
+  Druma: ['druma', 'dhumri', 'druthung', 'drudring', 'druring', 'druchen'],
+  Danyig: ['danyig', 'tsegdrig', 'drathung', 'dradring', 'draring', 'gongshabma'],
+  Pedri: ['pedri', 'peri', 'petsuk'],
+  Tsugdri: ['tsugdri', 'tsugthung', 'tsugchung', 'trinyig'],
+  Gyuyig: ['gyuyig', 'yigchung', 'tsumachug', 'khyuyig'],
+  'Multi-Scripts': ['multi_scripts'],
+  Other: ['other', 'non_tibetan', 'difficult'],
+}
+
+function GroupedScriptTypeBreakdown({
+  scriptTypes,
+  totalAccepted,
+}: {
+  scriptTypes: Record<string, number> | undefined
+  totalAccepted: number
+}) {
+  const { t } = useTranslation('admin')
+
+  const groups: Record<string, number> = {
+    'Uchen': 0,
+    'Druma': 0,
+    'Danyig': 0,
+    'Pedri': 0,
+    'Tsugdri': 0,
+    'Gyuyig': 0,
+    'Multi-Scripts': 0,
+    'Other': 0,
+  }
+
+  const reverseMap: Record<string, string> = {}
+  for (const [groupName, keys] of Object.entries(SCRIPT_GROUPS)) {
+    for (const k of keys) {
+      const normK = k.toLowerCase().replace(/[- ]/g, '_')
+      reverseMap[normK] = groupName
+    }
+  }
+
+  for (const [key, count] of Object.entries(scriptTypes ?? {})) {
+    if (typeof count !== 'number' || !Number.isFinite(count) || count <= 0) continue
+    const normKey = key.toLowerCase().replace(/[- ]/g, '_')
+    const targetGroup = reverseMap[normKey] ?? 'Other'
+    groups[targetGroup] += count
+  }
+
+  const groupedCounts = Object.keys(groups)
+    .map((group) => ({
+      group,
+      count: groups[group],
+    }))
+    .sort((a, b) => b.count - a.count)
+
+  const maxCount = groupedCounts[0]?.count ?? 0
+
+  return (
+    <div className="rounded-lg border bg-muted/30 px-4 py-3">
+      <div className="text-xs font-medium text-muted-foreground">
+        {t('batches.scriptTypeBreakdown', { count: totalAccepted })}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {groupedCounts.map(({ group, count }) => {
+          const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0
+
+          return (
+            <div key={group} className="flex items-center gap-3 text-xs">
+              <span className="w-28 shrink-0 truncate text-muted-foreground font-medium" title={group}>
+                {group}
+              </span>
+              <div className="flex-1 h-4 bg-muted rounded-sm overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500/70 rounded-sm transition-all duration-300"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <span className="w-12 shrink-0 text-right tabular-nums font-medium text-foreground">
+                {count}
+              </span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -65,18 +155,25 @@ export function ApplicationReportSummary() {
   ]
 
   return (
-    <div className="space-y-2 pb-4">
-      <p className="text-sm text-muted-foreground">{t('batches.allBatchesSummary')}</p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        {cards.map((card) => (
-          <SummaryCard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            percentage={card.percentage}
-          />
-        ))}
+    <div className="space-y-3 pb-4">
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">{t('batches.allBatchesSummary')}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          {cards.map((card) => (
+            <SummaryCard
+              key={card.label}
+              label={card.label}
+              value={card.value}
+              percentage={card.percentage}
+            />
+          ))}
+        </div>
       </div>
+
+      <GroupedScriptTypeBreakdown
+        scriptTypes={report.script_types}
+        totalAccepted={report.accepted}
+      />
     </div>
   )
 }

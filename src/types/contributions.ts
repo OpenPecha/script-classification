@@ -17,6 +17,9 @@ export interface ReviewerContributionRow {
   username: string
   total_reviewed: number
   verified_count: number
+  /** Distinct tasks rejected in the filtered or all-time window. */
+  rejected_tasks: number
+  /** Total rejection events (may exceed rejected_tasks). */
   total_rejection: number
 }
 
