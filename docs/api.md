@@ -136,6 +136,25 @@ Deletes a user.
 
 ---
 
+### `GET /contributions/{group_id}/summary`
+
+Group-level annotator/reviewer contribution totals. Used by the **User contributions** admin page.
+
+**Path params:** `group_id` — group UUID.
+
+**Query params (optional)**
+
+| Param | Type | Description |
+|---|---|---|
+| `start_date` | `YYYY-MM-DD` | First day of the range (**inclusive**) |
+| `end_date` | `YYYY-MM-DD` | Last day of the range (**inclusive**) |
+
+Omit both params for all-time (overall) totals.
+
+**Response** `GroupContributionSummaryResponse` (see `src/types/contributions.ts`).
+
+---
+
 ### `GET /tasks/scriptclassification/{userId}/contributions`
 
 Returns a user's contribution summary for a given date range.

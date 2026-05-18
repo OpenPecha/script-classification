@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  BarChart3,
 } from 'lucide-react'
 import { cn, getInitials, getRoleTranslationKey } from '@/lib/utils'
 import { useAuth } from '@/features/auth'
@@ -27,6 +28,13 @@ interface NavItem {
   icon: React.ElementType
   roles: UserRole[]
 }
+
+const CONTRIBUTIONS_ROLES: UserRole[] = [
+  UserRole.Admin,
+  UserRole.Annotator,
+  UserRole.Reviewer,
+  UserRole.FinalReviewer,
+]
 
 const navItems: NavItem[] = [
   {
@@ -53,6 +61,12 @@ const navItems: NavItem[] = [
     icon: Package,
     roles: [UserRole.Admin],
   },
+  {
+    labelKey: 'nav.userContributions',
+    href: '/admin/user-contributions',
+    icon: BarChart3,
+    roles: CONTRIBUTIONS_ROLES,
+  },
 ]
 
 export function Sidebar() {
@@ -62,7 +76,6 @@ export function Sidebar() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const sidebarRef = useRef<HTMLElement>(null)
 
-  // Close settings when clicking outside sidebar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -80,8 +93,8 @@ export function Sidebar() {
 
   if (!currentUser) return null
 
-  const filteredNavItems = navItems.filter((item) =>
-    currentUser.role && item.roles.includes(currentUser.role)
+  const filteredNavItems = navItems.filter(
+    (item) => currentUser.role && item.roles.includes(currentUser.role)
   )
 
   const handleLogout = () => {
@@ -92,6 +105,15 @@ export function Sidebar() {
     setSettingsOpen((prev) => !prev)
   }
 
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+      isActive
+        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+      sidebarCollapsed && 'justify-center px-2'
+    )
+
   return (
     <aside
       ref={sidebarRef}
@@ -100,7 +122,6 @@ export function Sidebar() {
         sidebarCollapsed ? 'w-16' : 'w-60'
       )}
     >
-      {/* Logo / Brand */}
       <div className="flex h-16 items-center justify-between px-4">
         {!sidebarCollapsed && (
           <div className="flex items-center gap-2">
@@ -129,22 +150,9 @@ export function Sidebar() {
 
       <Separator className="bg-sidebar-border" />
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
         {filteredNavItems.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                sidebarCollapsed && 'justify-center px-2'
-              )
-            }
-          >
+          <NavLink key={item.href} to={item.href} className={linkClass}>
             <item.icon className="h-5 w-5 shrink-0" />
             {!sidebarCollapsed && <span>{t(item.labelKey)}</span>}
           </NavLink>
@@ -152,9 +160,7 @@ export function Sidebar() {
       </nav>
       <Separator className="bg-sidebar-border" />
 
-      {/* User Profile & Settings */}
       <div className="p-2">
-        {/* Settings Panel - Animated */}
         <div
           className={cn(
             'overflow-hidden transition-all duration-300 ease-out',
@@ -162,13 +168,8 @@ export function Sidebar() {
           )}
         >
           <div className="flex flex-col gap-2 rounded-lg bg-sidebar-accent/50 p-2">
-            {/* Language Toggle */}
             <LanguageToggle />
-
-            {/* Theme Toggle */}
             <ThemeToggle />
-
-            {/* Logout Button */}
             <Button
               variant="ghost"
               size="sm"
@@ -181,7 +182,6 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Profile Row */}
         <div
           className={cn(
             'flex items-center gap-3 rounded-lg p-2',
@@ -204,17 +204,19 @@ export function Sidebar() {
               </p>
             </div>
           )}
-          {!sidebarCollapsed && <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              'h-8 w-8 shrink-0 text-muted-foreground hover:text-sidebar-foreground transition-transform duration-200',
-              settingsOpen && 'rotate-90'
-            )}
-            onClick={toggleSettings}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>}
+          {!sidebarCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'h-8 w-8 shrink-0 text-muted-foreground hover:text-sidebar-foreground transition-transform duration-200',
+                settingsOpen && 'rotate-90'
+              )}
+              onClick={toggleSettings}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </aside>
