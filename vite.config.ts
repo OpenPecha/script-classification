@@ -16,6 +16,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/s3-proxy/, ''),
       },
+      '/archive-proxy': {
+        target: 'https://s3.amazonaws.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/archive-proxy/, ''),
+      },
     },
   },
   resolve: {

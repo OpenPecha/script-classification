@@ -198,7 +198,7 @@ export function ClassificationWorkspace() {
       <main className="ml-60 flex flex-1 flex-col">
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-hidden">
-            <ImageCanvas imageUrl={task.task_url} isLoading={isTransitioning} />
+            <ImageCanvas imageUrl={task.task_url} />
           </div>
 
           <ScriptLabelGrid

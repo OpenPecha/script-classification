@@ -16,7 +16,7 @@ import {
   getRollingInclusiveDaysRange,
 } from '@/lib/contribution-date-range'
 import { AdminContributionsDateFilter } from './admin-contributions-date-filter'
-import { ContributionSummaryTables } from './contribution-summary-tables'
+import { ContributionSummaryTables } from './summary'
 
 export interface AdminGroupContributionRowProps {
   groupId: string
