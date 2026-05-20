@@ -30,18 +30,34 @@ export function getRoleTranslationKey(role: UserRole): string {
 }
 
 /**
+ * Returns true when the URL path ends with a TIFF extension (ignores query/hash).
+ */
+export function isTiffUrl(url: string): boolean {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+    return pathname.endsWith('.tiff') || pathname.endsWith('.tif')
+  } catch {
+    const path = url.split(/[?#]/)[0]?.toLowerCase() ?? ''
+    return path.endsWith('.tiff') || path.endsWith('.tif')
+  }
+}
+
+/**
  * Converts S3 URLs to use the Vite proxy in development to bypass CORS
  */
 export function getProxiedUrl(url: string): string {
-  if (import.meta.env.DEV && url.includes('s3.us-east-1.amazonaws.com')) {
+  if (!import.meta.env.DEV) return url
+
+  if (url.includes('s3.us-east-1.amazonaws.com')) {
     return url.replace('https://s3.us-east-1.amazonaws.com', '/s3-proxy')
   }
-  return url
-}
 
-function isTiffUrl(url: string): boolean {
-  const lower = url.toLowerCase()
-  return lower.endsWith('.tiff') || lower.endsWith('.tif')
+  // BDRC archive bucket (e.g. https://s3.amazonaws.com/archive.tbrc.org/...)
+  if (url.includes('s3.amazonaws.com')) {
+    return url.replace('https://s3.amazonaws.com', '/archive-proxy')
+  }
+
+  return url
 }
 
 /**

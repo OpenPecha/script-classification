@@ -34,7 +34,7 @@ import { UserRole } from '@/types'
 import { LoadingSpinner } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { AdminGroupContributionRow } from './admin-group-contribution-row'
-import { ContributionSummaryTables } from './contribution-summary-tables'
+import { ContributionSummaryTables } from './summary'
 
 function hasGroupId(value: string | undefined | null): value is string {
   return typeof value === 'string' && value.trim().length > 0
