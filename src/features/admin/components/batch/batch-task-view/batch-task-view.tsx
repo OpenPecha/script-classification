@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Download, Loader2 } from 'lucide-react'
@@ -18,7 +18,7 @@ import { useBatchCsvDownload } from '../../../hooks/use-batch-csv-download'
 import { TaskListSidebar } from './task-list-sidebar'
 import { TaskPreview } from './task-preview'
 import { BATCH_STATS_CONFIG, type BatchTask, type BatchTaskState } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, preloadImage } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -189,6 +189,24 @@ export function BatchTaskView() {
     // Replace task ID with task name if present in message
     return message.replace(task.task_id, task.task_name);
   }, []);
+
+  // Background prefetcher for images
+  useEffect(() => {
+    if (!tasks || tasks.length === 0 || !selectedTask) return
+
+    const currentIndex = tasks.findIndex((t) => t.task_id === selectedTask.task_id)
+    if (currentIndex === -1) return
+
+    // Prefetch the next 3 tasks' images
+    const nextTasks = tasks.slice(currentIndex + 1, currentIndex + 4)
+    nextTasks.forEach((task) => {
+      const imgKey = `prefetch-${task.task_id}`
+      if ((window as any)[imgKey]) return // already prefetched
+
+      (window as any)[imgKey] = true
+      preloadImage(task.task_url)
+    })
+  }, [tasks, selectedTask])
 
   // Handle restore
   const handleRestore = useCallback(() => {
