@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/axios'
-import { batchKeys } from './batch-keys'
 import { APPLICATION_NAME } from '@/lib/constant'
+import { applyOptimisticTaskUpdate, rollbackOptimisticTaskUpdate } from './optimistic-task-update'
 
 interface RejectTaskParams {
   taskId: string
@@ -21,13 +21,10 @@ export const useRejectTask = () => {
 
   return useMutation({
     mutationFn: rejectTask,
-    onSuccess: (_, { batchId }) => {
-      queryClient.invalidateQueries({
-        queryKey: batchKeys.report(batchId),
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['batches', 'tasks', batchId],
-      })
+    onMutate: async ({ taskId, batchId }) =>
+      applyOptimisticTaskUpdate(queryClient, taskId, batchId, 'REJECT'),
+    onError: (_, { batchId }, context) => {
+      if (context) rollbackOptimisticTaskUpdate(queryClient, batchId, context)
     },
   })
 }

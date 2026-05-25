@@ -14,7 +14,6 @@ export function ReviewerContributionTableRow({
   baseline,
 }: ReviewerContributionRowProps) {
   const totalReviewed = baseline.total_reviewed
-  const verifiedBaseline = baseline.verified_count
 
   const totalReviewedCell: ReactNode = filterActive ? (
     <ContributionMetricCell
@@ -43,13 +42,13 @@ export function ReviewerContributionTableRow({
   const rejectedTasksCell: ReactNode = filterActive ? (
     <ContributionMetricCell
       count={display.rejected_tasks}
-      denominator={verifiedBaseline}
+      denominator={totalReviewed}
       filterActive
     />
   ) : (
     <ContributionMetricCell
       count={baseline.rejected_tasks}
-      denominator={verifiedBaseline}
+      denominator={totalReviewed}
       filterActive={false}
     />
   )

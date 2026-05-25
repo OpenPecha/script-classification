@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/axios'
-import { batchKeys } from './batch-keys'
 import { APPLICATION_NAME } from '@/lib/constant'
+import { applyOptimisticTaskUpdate, rollbackOptimisticTaskUpdate } from './optimistic-task-update'
 
 interface RestoreTaskParams {
   taskId: string
@@ -17,16 +17,10 @@ export const useRestoreTask = () => {
 
   return useMutation({
     mutationFn: restoreTask,
-    onSuccess: (_, { batchId }) => {
-      // Invalidate batch report to refresh stats
-      queryClient.invalidateQueries({ 
-        queryKey: batchKeys.report(batchId) 
-      })
-      // Invalidate all task lists for this batch (all states: pending, trashed, all, etc.)
-      queryClient.invalidateQueries({ 
-        queryKey: ['batches', 'tasks', batchId]
-      })
+    onMutate: async ({ taskId, batchId }) =>
+      applyOptimisticTaskUpdate(queryClient, taskId, batchId, 'RESTORE'),
+    onError: (_, { batchId }, context) => {
+      if (context) rollbackOptimisticTaskUpdate(queryClient, batchId, context)
     },
   })
 }
-
