@@ -167,6 +167,10 @@ export function ClassificationWorkspace() {
   }
 
   if (!task) {
+    const noApplicationMessage = !currentUser?.application
+      ? 'You have no application assigned. Please contact your administrator.'
+      : undefined
+
     return (
       <div className="flex h-screen">
         <WorkspaceSidebar
@@ -179,6 +183,7 @@ export function ClassificationWorkspace() {
           <EmptyTasksState
             onRefresh={() => refetch()}
             isLoading={isLoading}
+            message={noApplicationMessage}
           />
         </main>
       </div>

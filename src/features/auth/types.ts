@@ -8,4 +8,5 @@ export interface AuthContextType {
   logout: () => void
   getToken: () => Promise<string | null>
   error: string | null
+  isPendingApproval: boolean
 }

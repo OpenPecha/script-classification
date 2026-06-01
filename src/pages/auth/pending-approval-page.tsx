@@ -8,7 +8,7 @@ import { Navigate } from 'react-router-dom'
 export function PendingApprovalPage() {
   const { t } = useTranslation('auth')
   const { t: tCommon } = useTranslation('common')
-  const { currentUser, logout } = useAuth()
+  const { currentUser, logout, isPendingApproval } = useAuth()
 
   const handleRefresh = () => {
     window.location.reload()
@@ -26,13 +26,15 @@ export function PendingApprovalPage() {
             <Clock className="h-10 w-10 text-amber-600 dark:text-amber-400" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {t('pending.title')}
+            {isPendingApproval ? t('pending.title') : 'Role Not Assigned'}
           </h1>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            {t('pending.description')}
+            {isPendingApproval
+              ? 'Your account is pending approval. Please wait for an administrator to create your account.'
+              : "Role is not assigned so you won't be able to receive tasks."}
           </p>
 
           {currentUser && (

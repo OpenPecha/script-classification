@@ -11,6 +11,8 @@ import { AuthContext } from './auth-context'
 import { UserRole } from '@/types'
 import type { User } from '@/types'
 import { apiClient } from '@/lib/axios'
+import { useQuery } from '@tanstack/react-query'
+
 interface AuthProviderProps {
   children: ReactNode
 }
@@ -33,15 +35,6 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error,
   } = useAuth0()
 
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [isUserLoading, setIsUserLoading] = useState(false)
-
-  // Combined loading state
-  // We consider it loading if Auth0 is loading, we are syncing the user,
-  // or if we are authenticated but haven't processed the user yet (race condition fix)
-  const isLoading = auth0Loading || isUserLoading || (isAuthenticated && !currentUser)
-
-
   // Set up API token getter when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -49,36 +42,38 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [isAuthenticated, getAccessTokenSilently])
 
-  // Sync user with backend when authenticated
-  useEffect(() => {
-    async function syncUser() {
-      if (!isAuthenticated || !auth0User?.email || auth0Loading) {
-        return
-      }
+  // React Query to fetch and manage user details
+  const {
+    data: userDetails,
+    isLoading: isQueryLoading,
+    error: queryError,
+  } = useQuery<User, Error>({
+    queryKey: ['user-details', auth0User?.email],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently()
+      localStorage.setItem('auth_token', token)
+      return await getUserDetails(auth0User!.email!)
+    },
+    enabled: isAuthenticated && !!auth0User?.email && !auth0Loading,
+    retry: false,
+  })
 
-      setIsUserLoading(true)
-
-      try {
-        const token = await getAccessTokenSilently()
-
-        const user = await getUserDetails(auth0User.email)
-        console.log('user', user)
-        setCurrentUser(user)
-
-        // Store token for API calls
-        localStorage.setItem('auth_token', token)
-      } catch (err) {
-        console.error('Failed to sync user:', err)
-        setCurrentUser({
-          email: auth0User.email
-        })
-      } finally {
-        setIsUserLoading(false)
-      }
+  // Compute currentUser with fallback if query fails
+  const currentUser = useMemo(() => {
+    if (userDetails) return userDetails
+    if (isAuthenticated && auth0User?.email && !isQueryLoading && queryError) {
+      return { email: auth0User.email }
     }
+    return null
+  }, [userDetails, isAuthenticated, auth0User, isQueryLoading, queryError])
 
-    syncUser()
-  }, [isAuthenticated, auth0User, auth0Loading, getAccessTokenSilently])
+  // Compute isPendingApproval from 404 API status code
+  const isPendingApproval = useMemo(() => {
+    return !!(queryError && (queryError as any).response?.status === 404)
+  }, [queryError])
+
+  // Combined loading state
+  const isLoading = auth0Loading || (isAuthenticated && isQueryLoading && !currentUser)
 
   const getToken = useCallback(async (): Promise<string | null> => {
     try {
@@ -102,10 +97,8 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [loginWithRedirect])
 
   const logout = useCallback(() => {
-    // Clear stored tokens and user
+    // Clear stored tokens
     localStorage.removeItem('auth_token')
-    setCurrentUser(null)
-
     auth0Logout({
       logoutParams: {
         returnTo: `${window.location.origin}/login`,
@@ -121,7 +114,8 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     getToken,
     error: error?.message || null,
-  }), [isAuthenticated, isLoading, currentUser, login, logout, getToken, error])
+    isPendingApproval,
+  }), [isAuthenticated, isLoading, currentUser, login, logout, getToken, error, isPendingApproval])
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -177,6 +171,7 @@ const DevAuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     getToken,
     error: null,
+    isPendingApproval: false,
   }), [currentUser, isLoading, login, logout, getToken])
 
   return (
