@@ -8,4 +8,7 @@ export interface AuthContextType {
   logout: () => void
   getToken: () => Promise<string | null>
   error: string | null
+  wrongAppUrl: string | null
+  hasNoGroup: boolean
+  isPendingApproval: boolean
 }

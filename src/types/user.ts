@@ -15,6 +15,7 @@ export interface User {
   group_name?: string
   group_id?: string
   picture?: string
+  application?: string
   createdAt?: Date
 }
 
