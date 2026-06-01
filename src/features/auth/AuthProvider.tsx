@@ -11,7 +11,7 @@ import { AuthContext } from './auth-context'
 import { UserRole } from '@/types'
 import type { User } from '@/types'
 import { apiClient } from '@/lib/axios'
-import { APPLICATION_NAME, WRONG_APP_URLS } from '@/lib/constant'
+import { useQuery } from '@tanstack/react-query'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -35,18 +35,6 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error,
   } = useAuth0()
 
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [isUserLoading, setIsUserLoading] = useState(false)
-  const [wrongAppUrl, setWrongAppUrl] = useState<string | null>(null)
-  const [hasNoGroup, setHasNoGroup] = useState(false)
-  const [isPendingApproval, setIsPendingApproval] = useState(false)
-
-  // Combined loading state
-  // We consider it loading if Auth0 is loading, we are syncing the user,
-  // or if we are authenticated but haven't processed the user yet (race condition fix)
-  const isLoading = auth0Loading || isUserLoading || (isAuthenticated && !currentUser)
-
-
   // Set up API token getter when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -54,61 +42,38 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [isAuthenticated, getAccessTokenSilently])
 
-  // Sync user with backend when authenticated
-  useEffect(() => {
-    async function syncUser() {
-      if (!isAuthenticated || !auth0User?.email || auth0Loading) {
-        return
-      }
+  // React Query to fetch and manage user details
+  const {
+    data: userDetails,
+    isLoading: isQueryLoading,
+    error: queryError,
+  } = useQuery<User, Error>({
+    queryKey: ['user-details', auth0User?.email],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently()
+      localStorage.setItem('auth_token', token)
+      return await getUserDetails(auth0User!.email!)
+    },
+    enabled: isAuthenticated && !!auth0User?.email && !auth0Loading,
+    retry: false,
+  })
 
-      setIsUserLoading(true)
-
-      try {
-        const token = await getAccessTokenSilently()
-
-        const user = await getUserDetails(auth0User.email)
-        console.log('user', user)
-        setCurrentUser(user)
-        setIsPendingApproval(false)
-
-        // Case 4: Wrong application validation (except for admin role)
-        if (user.role !== UserRole.Admin && user.application && user.application !== APPLICATION_NAME) {
-          const redirectUrl = WRONG_APP_URLS[user.application] ?? null
-          setWrongAppUrl(redirectUrl)
-        } else {
-          setWrongAppUrl(null)
-        }
-
-        // Case 2: No group validation (except for admin role)
-        if (user.role !== UserRole.Admin && !user.group_id) {
-          setHasNoGroup(true)
-        } else {
-          setHasNoGroup(false)
-        }
-
-        // Store token for API calls
-        localStorage.setItem('auth_token', token)
-      } catch (err: any) {
-        console.error('Failed to sync user:', err)
-        setCurrentUser({
-          email: auth0User.email
-        })
-        setWrongAppUrl(null)
-        setHasNoGroup(false)
-
-        // If error response status is 404, we mark as pending approval
-        if (err.response?.status === 404) {
-          setIsPendingApproval(true)
-        } else {
-          setIsPendingApproval(false)
-        }
-      } finally {
-        setIsUserLoading(false)
-      }
+  // Compute currentUser with fallback if query fails
+  const currentUser = useMemo(() => {
+    if (userDetails) return userDetails
+    if (isAuthenticated && auth0User?.email && !isQueryLoading && queryError) {
+      return { email: auth0User.email }
     }
+    return null
+  }, [userDetails, isAuthenticated, auth0User, isQueryLoading, queryError])
 
-    syncUser()
-  }, [isAuthenticated, auth0User, auth0Loading, getAccessTokenSilently])
+  // Compute isPendingApproval from 404 API status code
+  const isPendingApproval = useMemo(() => {
+    return !!(queryError && (queryError as any).response?.status === 404)
+  }, [queryError])
+
+  // Combined loading state
+  const isLoading = auth0Loading || (isAuthenticated && isQueryLoading && !currentUser)
 
   const getToken = useCallback(async (): Promise<string | null> => {
     try {
@@ -132,13 +97,8 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [loginWithRedirect])
 
   const logout = useCallback(() => {
-    // Clear stored tokens and user
+    // Clear stored tokens
     localStorage.removeItem('auth_token')
-    setCurrentUser(null)
-    setWrongAppUrl(null)
-    setHasNoGroup(false)
-    setIsPendingApproval(false)
-
     auth0Logout({
       logoutParams: {
         returnTo: `${window.location.origin}/login`,
@@ -154,10 +114,8 @@ const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     getToken,
     error: error?.message || null,
-    wrongAppUrl,
-    hasNoGroup,
     isPendingApproval,
-  }), [isAuthenticated, isLoading, currentUser, login, logout, getToken, error, wrongAppUrl, hasNoGroup, isPendingApproval])
+  }), [isAuthenticated, isLoading, currentUser, login, logout, getToken, error, isPendingApproval])
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -213,8 +171,6 @@ const DevAuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     getToken,
     error: null,
-    wrongAppUrl: null,
-    hasNoGroup: false,
     isPendingApproval: false,
   }), [currentUser, isLoading, login, logout, getToken])
 

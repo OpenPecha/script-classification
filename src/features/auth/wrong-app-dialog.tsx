@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from './use-auth'
 
 interface WrongAppDialogProps {
-  url: string
+  url: string | null
 }
 
 export function WrongAppDialog({ url }: WrongAppDialogProps) {
@@ -38,22 +38,29 @@ export function WrongAppDialog({ url }: WrongAppDialogProps) {
 
         <div className="my-4 p-4 rounded-lg bg-muted text-center">
           <p className="text-sm font-medium">Please go to the correct tool:</p>
-          <a
-            href={url}
-            className="mt-2 text-primary hover:underline font-medium break-all flex items-center justify-center"
-          >
-            {url}
-            <ArrowRight className="ml-1 h-4 w-4" />
-          </a>
+          {url ? (
+            <a
+              href={url}
+              className="mt-2 text-primary hover:underline font-medium break-all flex items-center justify-center"
+            >
+              {url}
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </a>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">Not configured</p>
+          )}
         </div>
 
         <DialogFooter className="sm:justify-center">
           <Button
             onClick={() => {
               logout()
-              window.location.href = url
+              if (url) {
+                window.location.href = url
+              }
             }}
             className="w-full sm:w-auto"
+            disabled={!url}
           >
             Go to Correct Tool
           </Button>
