@@ -44,8 +44,8 @@ export function UserForm({
     defaultValues: {
       username: defaultValues?.username ?? '',
       email: defaultValues?.email ?? '',
-      role: defaultValues?.role ?? UserRole.Annotator,
-      group_id: defaultValues?.group_id ?? '',
+      role: (defaultValues?.role as any) || 'none',
+      group_id: defaultValues?.group_id || 'none',
     },
   })
 
@@ -84,7 +84,7 @@ export function UserForm({
       <div className="space-y-4">
         <Label htmlFor="role">{t('form.role')}</Label>
         <Select
-          value={selectedRole}
+          value={selectedRole || 'none'}
           onValueChange={(value) => setValue('role', value as UserRole)}
           disabled={isSubmitting}
         >
@@ -92,6 +92,7 @@ export function UserForm({
             <SelectValue placeholder={t('form.selectRole')} />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="none">-</SelectItem>
             {Object.values(UserRole).map((role) => (
               <SelectItem key={role} value={role}>
                 {t(`roles.${getRoleTranslationKey(role)}`)}
@@ -107,7 +108,7 @@ export function UserForm({
       <div className="space-y-4">
         <Label htmlFor="group">{t('form.group')}</Label>
         <Select
-          value={selectedGroup}
+          value={selectedGroup || 'none'}
           onValueChange={(value) => setValue('group_id', value)}
           disabled={isSubmitting}
         >
@@ -115,6 +116,7 @@ export function UserForm({
             <SelectValue placeholder={t('form.selectGroup')} />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="none">-</SelectItem>
             {groups.map((group) => (
               <SelectItem key={group.id} value={group.id}>
                 {group.name}

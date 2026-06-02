@@ -33,8 +33,8 @@ export interface CreateUserDTO {
 export interface UpdateUserDTO {
   new_username?: string
   new_email?: string
-  new_role?: UserRole
-  new_group_id?: string
+  new_role?: UserRole | null
+  new_group_id?: string | null
 }
 
 // Paginated response wrapper

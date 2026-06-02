@@ -9,7 +9,7 @@ import {
 import { UserForm } from './user-form'
 import { useCreateUser, useUpdateUser } from '../../api/user'
 import { useGetGroups } from '../../api/group'
-import type { CreateUserDTO, User } from '@/types'
+import { UserRole, type CreateUserDTO, type User } from '@/types'
 import type { UserFormData } from '@/schema/user-schema'
 
 interface UserDialogProps {
@@ -31,13 +31,16 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   const handleSubmit = async (data: UserFormData) => {
     try {
       if (isEditing && user) {
+        const mappedRole = data.role === 'none' ? null : (data.role as UserRole)
+        const mappedGroupId = data.group_id === 'none' ? null : data.group_id
+
         await updateUser.mutateAsync({
           id: user.id!,
           data: {
             new_username: data.username,
             new_email: data.email,
-            ...(data.role ? { new_role: data.role } : {}),
-            ...(data.group_id ? { new_group_id: data.group_id } : {}),
+            new_role: mappedRole,
+            new_group_id: mappedGroupId,
           },
         })
       } else {
@@ -47,8 +50,8 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
           email: data.email,
         }
         if (data.username) payload.username = data.username
-        if (data.role) payload.role = data.role
-        if (data.group_id) payload.group_id = data.group_id
+        if (data.role && data.role !== 'none') payload.role = data.role as UserRole
+        if (data.group_id && data.group_id !== 'none') payload.group_id = data.group_id
         await createUser.mutateAsync(payload)
       }
       onOpenChange(false)
@@ -61,8 +64,8 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
     ? {
         username: user.username,
         email: user.email,
-        role: user.role,
-        group_id: user.group_id ?? '',
+        role: user.role || ('none' as any),
+        group_id: user.group_id || 'none',
       }
     : undefined
 
