@@ -17,6 +17,7 @@ export interface User {
   picture?: string
   application?: string
   createdAt?: Date
+  active?: boolean
 }
 
 // Request payload for creating users

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Edit, Trash2, Mail, BarChart3 } from 'lucide-react'
+import { Edit, Trash2, Mail, BarChart3, UserCheck, Loader2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,8 +11,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import { UserRole, ROLE_CONFIG, type User, type Group } from '@/types'
-import { useUpdateUser } from '../../api/user'
+import { useUpdateUser, useReactivateUser } from '../../api/user'
+import { useUIStore } from '@/store/use-ui-store'
 import { UserDialog } from './user-dialog'
 import { DeleteUserDialog } from './delete-user-dialog'
 import { UserReportDialog } from './user-report-dialog'
@@ -29,6 +31,8 @@ export function UserItem({ user, groups }: UserItemProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [reportDialogOpen, setReportDialogOpen] = useState(false)
   const updateUser = useUpdateUser()
+  const reactivateUser = useReactivateUser()
+  const { addToast } = useUIStore()
 
   const handleRoleChange = async (newRole: string) => {
     if (newRole === user.role) return
@@ -54,9 +58,39 @@ export function UserItem({ user, groups }: UserItemProps) {
     }
   }
 
+  const handleReactivate = async () => {
+    if (!user.email) return
+
+    try {
+      await reactivateUser.mutateAsync({
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        group_id: user.group_id,
+      })
+      addToast({
+        title: 'User Reactivated',
+        description: `Successfully reactivated ${user.username || user.email}`,
+        variant: 'success',
+      })
+    } catch (error: any) {
+      const serverMessage = error?.response?.data?.detail || 
+                            error?.response?.data?.error || 
+                            error?.response?.data?.message
+      const message = serverMessage || error?.message || 'Unknown error'
+      addToast({
+        title: 'Reactivation Failed',
+        description: message,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const isActionPending = updateUser.isPending || reactivateUser.isPending
+
   return (
     <>
-      <div className="grid grid-cols-[1fr_150px_150px_120px] gap-4 items-center p-4 hover:bg-muted/50 transition-colors border-b border-border last:border-0">
+      <div className={`grid grid-cols-[1fr_150px_150px_120px] gap-4 items-center p-4 hover:bg-muted/50 transition-colors border-b border-border last:border-0 ${user.active === false ? 'opacity-70 bg-muted/20' : ''}`}>
         {/* Name & Email */}
         <div className="flex items-center gap-3 min-w-0">
           <Avatar className="h-10 w-10 shrink-0">
@@ -66,7 +100,14 @@ export function UserItem({ user, groups }: UserItemProps) {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="font-medium truncate">{user.username}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium truncate">{user.username}</p>
+              {user.active === false && (
+                <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px] py-0 px-1.5 font-normal">
+                  Inactive
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground flex items-center gap-1 truncate">
               <Mail className="h-3 w-3 shrink-0" />
               <span className="truncate">{user.email}</span>
@@ -78,7 +119,7 @@ export function UserItem({ user, groups }: UserItemProps) {
         <Select
           value={user.role}
           onValueChange={handleRoleChange}
-          disabled={updateUser.isPending}
+          disabled={isActionPending || user.active === false}
         >
           <SelectTrigger className="h-8 text-sm">
             <SelectValue />
@@ -96,7 +137,7 @@ export function UserItem({ user, groups }: UserItemProps) {
         <Select
           value={user.group_id || ''}
           onValueChange={handleGroupChange}
-          disabled={updateUser.isPending}
+          disabled={isActionPending || user.active === false}
         >
           <SelectTrigger className="h-8 text-sm">
             <SelectValue placeholder="-" />
@@ -118,6 +159,7 @@ export function UserItem({ user, groups }: UserItemProps) {
             className="h-8 w-8"
             onClick={() => setReportDialogOpen(true)}
             title={t('users.viewReport')}
+            disabled={isActionPending}
           >
             <BarChart3 className="h-4 w-4 text-amber-600" />
             <span className="sr-only">{t('users.viewReport')}</span>
@@ -127,20 +169,40 @@ export function UserItem({ user, groups }: UserItemProps) {
             size="icon"
             className="h-8 w-8"
             onClick={() => setEditDialogOpen(true)}
+            disabled={isActionPending || user.active === false}
           >
             <Edit className="h-4 w-4 text-primary" />
             <span className="sr-only">Edit user</span>
           </Button>
-          <Button
-            variant="ghost"
-            disabled={true}
-            size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Delete user</span>
-          </Button>
+          {user.active !== false ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={isActionPending}
+              title="Delete user"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Delete user</span>
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-emerald-600 hover:text-emerald-600 hover:bg-emerald-50"
+              onClick={handleReactivate}
+              disabled={isActionPending}
+              title="Reactivate user"
+            >
+              {reactivateUser.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserCheck className="h-4 w-4" />
+              )}
+              <span className="sr-only">Reactivate user</span>
+            </Button>
+          )}
         </div>
       </div>
 
