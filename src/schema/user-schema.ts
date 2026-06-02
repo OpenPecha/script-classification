@@ -9,9 +9,9 @@ export const userSchema = z.object({
   email: z
     .string()
     .email('Please enter a valid email address'),
-  role: z.nativeEnum(UserRole, {
-    message: 'Please select a role',
-  }),
+  role: z
+    .union([z.nativeEnum(UserRole), z.literal('none'), z.literal(''), z.null()])
+    .optional(),
   group_id: z
     .string()
     .optional(),

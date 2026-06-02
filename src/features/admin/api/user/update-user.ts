@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { apiClient } from '@/lib/axios'
-import { type User, type UpdateUserDTO } from '@/types'
+import { type User, type UpdateUserDTO, type UserListResponse } from '@/types'
 import { userKeys } from './user-keys'
 import { groupKeys } from '../group/group-keys'
 
@@ -18,8 +18,25 @@ export const useUpdateUser = () => {
 
   return useMutation({
     mutationFn: updateUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.all })
+    onSuccess: (updatedUser) => {
+      // Update only the affected user record in local queries
+      queryClient.setQueriesData<InfiniteData<UserListResponse>>(
+        { queryKey: userKeys.lists() },
+        (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              items: page.items.map((user) =>
+                user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+              ),
+            })),
+          }
+        }
+      )
+      
+      // Also invalidate group queries to refresh user lists in groups
       queryClient.invalidateQueries({ queryKey: groupKeys.all, refetchType: 'all' })
     },
   })

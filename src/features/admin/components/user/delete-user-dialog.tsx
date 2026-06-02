@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -24,21 +24,28 @@ export function DeleteUserDialog({
   user,
 }: DeleteUserDialogProps) {
   const deleteUser = useDeleteUser()
-  const [error, setError] = useState<string | null>(null)
 
   const isDeleting = deleteUser.isPending
+  const serverError = deleteUser.error as any
+  const errorMessage = serverError?.response?.data?.detail || 
+                       serverError?.response?.data?.error || 
+                       serverError?.response?.data?.message || 
+                       serverError?.message
+
+  // Reset mutation state when dialog is closed
+  useEffect(() => {
+    if (!open) {
+      deleteUser.reset()
+    }
+  }, [open, deleteUser])
 
   const handleDelete = async () => {
-    if (!user) return
-
-    setError(null)
+    if (!user || !user.id) return
 
     try {
-      if (!user.username) return
-      await deleteUser.mutateAsync(user.username)
+      await deleteUser.mutateAsync(user.id)
       onOpenChange(false)
     } catch (err) {
-      setError('Failed to delete user. Please try again.')
       console.error('Failed to delete user:', err)
     }
   }
@@ -54,12 +61,12 @@ export function DeleteUserDialog({
             Delete User
           </DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{user.username}</strong>? This
+            Are you sure you want to delete <strong>{user.username || user.email}</strong>? This
             action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
