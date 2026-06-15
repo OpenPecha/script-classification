@@ -1,4 +1,5 @@
-import { AlertTriangle, ArrowRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { AlertTriangle, ArrowRight, LogOut } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,14 @@ interface WrongAppDialogProps {
 }
 
 export function WrongAppDialog({ url }: WrongAppDialogProps) {
+  const { t } = useTranslation('common')
   const { logout } = useAuth()
+
+  const handleRedirect = () => {
+    if (url) {
+      window.location.href = url
+    }
+  }
 
   return (
     <Dialog open={true} onOpenChange={() => {}}>
@@ -29,40 +37,46 @@ export function WrongAppDialog({ url }: WrongAppDialogProps) {
             <AlertTriangle className="h-6 w-6" />
           </div>
           <DialogTitle className="text-xl font-bold text-foreground">
-            Incorrect Application
+            Wrong Application
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground mt-2">
-            You cannot log in here. Your account is assigned to a different application.
+            Your account is assigned to a different web tool. You cannot access this application.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="my-4 p-4 rounded-lg bg-muted text-center">
-          <p className="text-sm font-medium">Please go to the correct tool:</p>
-          {url ? (
-            <a
-              href={url}
-              className="mt-2 text-primary hover:underline font-medium break-all flex items-center justify-center"
-            >
-              {url}
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </a>
-          ) : (
-            <p className="text-sm text-muted-foreground mt-1">Not configured</p>
-          )}
+        <div className="my-4 p-4 rounded-lg bg-muted/50 border border-border flex flex-col items-center justify-center text-center">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            Your Correct Web Tool
+          </span>
+          <span className="text-sm font-medium text-foreground break-all px-2">
+            {url || 'Not configured'}
+          </span>
         </div>
 
-        <DialogFooter className="sm:justify-center">
+        {!url && (
+          <p className="text-xs text-destructive font-medium text-center">
+            Please contact your administrator to configure your application access.
+          </p>
+        )}
+
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          {url && (
+            <Button
+              onClick={handleRedirect}
+              variant="destructive"
+              className="w-full sm:w-auto"
+            >
+              Go to Correct Tool
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          )}
           <Button
-            onClick={() => {
-              logout()
-              if (url) {
-                window.location.href = url
-              }
-            }}
+            onClick={logout}
+            variant="outline"
             className="w-full sm:w-auto"
-            disabled={!url}
           >
-            Go to Correct Tool
+            <LogOut className="mr-2 h-4 w-4" />
+            {t('actions.signOut')}
           </Button>
         </DialogFooter>
       </DialogContent>
